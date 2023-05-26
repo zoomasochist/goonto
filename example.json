@@ -1,0 +1,16 @@
+{
+    "popups": {
+        "enabled": true,
+        "rate": 2000,
+        "opacity": [50, 100],
+        "mitosis": {
+            "chance": 10,
+            "max": 3
+        },
+        "censor_chance": 30
+    },
+    "web": {
+        "enabled": false,
+        "rate": 5000
+    }
+}
