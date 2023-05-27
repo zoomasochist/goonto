@@ -1,16 +1,35 @@
 {
     "popups": {
         "enabled": true,
-        "rate": 2000,
+        "rate": 4000,
+        /* Borked ATM */
         "opacity": [50, 100],
+        /* Clicking on a popup will close it */
+        "closable": true,
+        /* Closing a popup has the chance to spawn more */
         "mitosis": {
-            "chance": 10,
-            "max": 3
+            "chance": 20,
+            "max": 5
         },
-        "censor_chance": 30
+        "censor_chance": 50,
+        /* Chance of the next popup spawning under the cursor */
+        "follow_cursor_chance": 0
+    },
+    "notifs": {
+        "enabled": false,
+        "rate": 500,
+        /* Stay open forever, or close after a timeout */
+        "close_automatically": false
     },
     "web": {
         "enabled": false,
-        "rate": 5000
+        "rate": 2000
+    },
+    "typing": {
+        "enabled": false,
+        "rate": 3000
+    },
+    "audio": {
+        "enabled": false
     }
 }

@@ -5,12 +5,16 @@ Install Goonto.
 ## Features
 
 | **Feature**         | **Edgeware** | **Goonto** |
+| ------------------- | ------------ | ---------- |
 | Linux/macOS support |      ❌†     |     ✅     |
 | Blazing fast 🚀🚀🚀 |      ❌      |     ✅     |
+| Popups follow cursor|      ❌      |     ✅     |
+| Notification spam   |      ❌      |     ✅     |
+| Auto-type           |      ❌      |     ✅     |
 | Website opener      |      ✅      |     ✅     |
 | Popups              |      ✅      |     ✅     |
-| Popup mitosis       |      ✅      |     ❌     |
-| Audio               |      ✅      |     ❌     |
+| Popup mitosis       |      ✅      |     ✅     |
+| Audio               |      ✅      |     ✅     |
 | Wallpaper changer   |      ✅      |     ❌     |
 | Prompts             |      ✅      |     ❌     |
 | Drive filler        |      ✅      |     ❌*    |
@@ -23,8 +27,8 @@ Install Goonto.
 | Popup censoring     |      ✅      |     ❌     |
 | Lowkey mode         |      ❌      |     ❌     |
 | Walltaker support   |      ❌      |     ❌     |
-| Notification spam   |      ❌      |     ❌     |
-| Auto-type           |      ❌      |     ❌     |
+| Block opening Task Manager |      ❌      |     ❌     |
+| Background hypno    |      ❌      |     ❌     |
 
 † = "Linux support" means X11. Wayland does not allow programs to control the position
 of their windows, so Goonto etc. will never work.

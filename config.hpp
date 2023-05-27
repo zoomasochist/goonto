@@ -10,7 +10,6 @@ struct web_t
 
 struct mitosis_t
 {
-    bool enabled;
     int chance;
     int max;
 };
@@ -21,14 +20,37 @@ struct popup_t
     std::pair<int, int> opacity;
     int censor_chance;
     long rate;
+    int follow_cursor_chance;
+    bool closable;
 
-    mitosis_t t;
+    mitosis_t mitosis;
+};
+
+struct typing_t
+{
+    bool enabled;
+    long rate;
+};
+
+struct audio_t
+{
+    bool enabled;
+};
+
+struct notif_t
+{
+    bool enabled;
+    long rate;
+    bool close_automatically;
 };
 
 struct config_t
 {
     popup_t popups;
-    web_t web;
+    notif_t notifs;
+    web_t   web;
+    audio_t audio;
+    typing_t typing;
 };
 
 config_t loadConfig(std::string);
