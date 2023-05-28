@@ -44,6 +44,14 @@ struct notif_t
     bool close_automatically;
 };
 
+struct video_t
+{
+    bool enabled;
+    long rate;
+    bool multiple;
+    int censor_chance;
+};
+
 struct config_t
 {
     popup_t popups;
@@ -51,6 +59,7 @@ struct config_t
     web_t   web;
     audio_t audio;
     typing_t typing;
+    video_t videos;
 };
 
 config_t loadConfig(std::string);

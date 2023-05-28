@@ -11,13 +11,15 @@ private:
     // Media
     std::vector<std::string> images;
     std::vector<std::string> audio;
+    std::vector<std::string> videos;
 public:
     Pack(std::string);
-    // Returns the path of a randomly chosen image in the pack.
+
     std::string RandomImage();
     std::string RandomUrl();
     std::string RandomPrompt();
     std::string RandomAudio();
+    std::string RandomVideo();
 };
 
 #endif

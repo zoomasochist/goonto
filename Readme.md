@@ -6,14 +6,17 @@ Install Goonto.
 
 | **Feature**         | **Edgeware** | **Goonto** |
 | ------------------- | ------------ | ---------- |
-| Linux/macOS support |      ❌†     |     ✅     |
+| Linux/macOS support |      ❌      |     ✅†    |
+| Ezpz to install     |      ❌      |     ✅     |
 | Blazing fast 🚀🚀🚀 |      ❌      |     ✅     |
 | Popups follow cursor|      ❌      |     ✅     |
 | Notification spam   |      ❌      |     ✅     |
 | Auto-type           |      ❌      |     ✅     |
 | Website opener      |      ✅      |     ✅     |
+| Popup opacity       |      ✅      |     ✅     |
 | Popups              |      ✅      |     ✅     |
 | Popup mitosis       |      ✅      |     ✅     |
+| Popup censoring     |      ✅      |     ✅     |
 | Audio               |      ✅      |     ✅     |
 | Wallpaper changer   |      ✅      |     ❌     |
 | Prompts             |      ✅      |     ❌     |
@@ -22,23 +25,17 @@ Install Goonto.
 | Panic button        |      ✅      |     ❌     |
 | Booru downloader    |      ✅      |     ❌     |
 | GUI configuration   |      ✅      |     ❌     |
-| Popup opacity       |      ✅      |     ❌     |
 | Discord activity    |      ✅      |     ❌     |
-| Popup censoring     |      ✅      |     ❌     |
 | Lowkey mode         |      ❌      |     ❌     |
+| Video popups        |      ❌      |     ❌     |
 | Walltaker support   |      ❌      |     ❌     |
-| Block opening Task Manager |      ❌      |     ❌     |
 | Background hypno    |      ❌      |     ❌     |
+| Block opening Task Manager |      ❌      |     ❌     |
 
 † = "Linux support" means X11. Wayland does not allow programs to control the position
 of their windows, so Goonto etc. will never work.
-\* = Unlikely to be implemented. Presume everything else
-marked ❌ is in the pipeline.
 
-## Issues
-
-- Not multi-monitor aware
-    - Should be pretty simple to implement
+\* = Unlikely to be implemented. Presume everything else marked ❌ is in the pipeline.
 
 ## Building
 

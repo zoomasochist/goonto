@@ -44,6 +44,12 @@ Pack::Pack(std::string path)
         if (entry.is_regular_file())
             audio.push_back(entry.path());
     }
+
+    for (auto const& entry : std::filesystem::directory_iterator{path + "/vid"}) 
+    {
+        if (entry.is_regular_file())
+            videos.push_back(entry.path());
+    }
 }
 
 std::string Pack::RandomImage()
@@ -80,5 +86,12 @@ std::string Pack::RandomAudio()
 {
     auto iter = audio.begin();
     std::advance(iter, distribute(generator) % audio.size());
+    return *iter;
+}
+
+std::string Pack::RandomVideo()
+{
+    auto iter = videos.begin();
+    std::advance(iter, distribute(generator) % videos.size());
     return *iter;
 }

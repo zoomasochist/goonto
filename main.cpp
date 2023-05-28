@@ -1,11 +1,13 @@
 #include <numeric>
 #include <utility>
 #include <chrono>
+#include <atomic>
 #include <thread>
 #include <random>
 #include <wx/wx.h>
 #include <wx/notifmsg.h>
 #include <wx/mediactrl.h>
+#include <wx/display.h>
 #include <vlc/vlc.h>
 
 #ifdef _WIN32
@@ -36,9 +38,14 @@ static std::random_device os_seed;
 static std::mt19937 generator(os_seed());
 std::uniform_int_distribution<uint_least32_t> distribute(35915);
 
-int rand(int to)
+inline int rand(int to)
 {
     return distribute(generator) % to;
+}
+
+inline int rand(int from, int to)
+{
+    return distribute(generator) % (from - to + 1) + to;
 }
 
 // Accepts the width and height of an image and returns a "reasonable" width and height
@@ -53,12 +60,19 @@ std::pair<int, int> reasonableSize(int w, int h)
     return std::make_pair(w * ratio, h * ratio);
 }
 
-std::pair<int, int> reasonablePosition(void)
+inline std::pair<int, int> reasonablePosition(void)
 {
-    int mw, mh;
-    wxDisplaySize(&mw, &mh);
+    int width, height = 1080;
+    int mon_count = wxDisplay::GetCount();
 
-    return std::make_pair(rand(mw), rand(mh));
+    for (int i = 0; i < mon_count; i++)
+    {
+        wxRect geo = wxDisplay(i).GetGeometry();
+        width += geo.GetWidth();
+        height = geo.GetHeight();
+    }
+
+    return std::make_pair(rand(width), rand(height));
 }
 
 enum
@@ -68,6 +82,7 @@ enum
     NewNotif_Timer,
     Typing_Timer,
     Audio_Timer,
+    Video_Timer,
 };
 
 class Goonto: public wxApp
@@ -77,10 +92,14 @@ wxTimer *web_timer;
 wxTimer *notif_timer;
 wxTimer *typing_timer;
 wxTimer *audio_timer;
+wxTimer *video_timer;
 
-libvlc_instance_t *inst;
+std::atomic<bool> m_videoPlaying;
+
+libvlc_instance_t *vid_inst = libvlc_new(0, NULL);
+libvlc_media_player_t *vid_mp = nullptr;
+libvlc_instance_t *inst = libvlc_new(0, NULL);
 libvlc_media_player_t *mp = nullptr;
-
 
 Pack *pack;
 config_t config;
@@ -121,8 +140,13 @@ bool OnInit()
     if (config.audio.enabled)
     {
         audio_timer = new wxTimer(this, Audio_Timer);
-        inst = libvlc_new(0, NULL);
         audio_timer->Start(3000);
+    }
+
+    if (config.videos.enabled)
+    {
+        video_timer = new wxTimer(this, Video_Timer);
+        video_timer->Start(config.videos.rate);
     }
 
     return true;
@@ -135,65 +159,78 @@ int OnExit()
     delete notif_timer;
     delete typing_timer;
     delete audio_timer;
+    delete video_timer;
     delete pack;
-    libvlc_media_player_release(mp);
+
+    if (mp != nullptr)
+        libvlc_media_player_release(mp);
     libvlc_release(inst);
  
     return 0;
 }
 
-// This is a bit of a hack to simplify the implementation of
-// mitosis. Otherwise I'd have to find a way to manually
-// create a timer event to pass to this function when spawning
-// mitosis children. Oh well.
-void OpenImage(wxTimerEvent& WXUNUSED(event))
+inline void OpenImage(wxTimerEvent &WXUNUSED(event))
 {
-    OpenImage_();
+    OpenImage();
 }
 
-void OpenImage_()
+// Open image
+//    (1) somewhere random
+//    (2) under the cursor
+void OpenImage()
+{
+    if (rand(100) < config.popups.follow_cursor_chance)
+        OpenImageUnderCursor();
+
+    auto [x, y] = reasonablePosition();
+
+    OpenImageAt(x, y);
+}
+
+void OpenImageUnderCursor()
+{
+    const wxPoint pt = wxGetMousePosition();
+
+    OpenImageAt(pt.x, pt.y);
+}
+
+// Open image 
+void OpenImageAt(int x, int y)
 {
     auto path = pack->RandomImage();
     wxImage image(path);
 
+    if (!image.IsOk()) OpenImage();
+
     auto [width, height] = reasonableSize(image.GetWidth(), image.GetHeight());
     image.Rescale(width, height);
 
-    auto [x, y] = reasonablePosition();
-
-    if (rand(100) < config.popups.follow_cursor_chance)
-    {
-        const wxPoint pt = wxGetMousePosition();
-        x = pt.x - (height / 2);
-        y = pt.y - (width  / 2);
-    }
+    x -= width / 2;
+    y -= height / 2;
 
     wxFrame *frame = new wxFrame(NULL, -1, "Goonto", wxPoint(x, y), wxSize(450, 340),
         wxBORDER_NONE | wxFRAME_NO_TASKBAR | wxSTAY_ON_TOP);
-
     wxBoxSizer *sizer = new wxBoxSizer(wxHORIZONTAL);
 
     if (rand(100) < config.popups.censor_chance)
         image = image.Blur(10);
 
-    // int min = config.popups.opacity.first;
-    // int max = config.popups.opacity.second;
-    // int opacity = rand() % ((max-min + 1) + min);
-
     wxBitmap bitmap(image);
     wxStaticBitmap *static_bitmap = new wxStaticBitmap(frame, -1, wxNullBitmap);
-    // CanSetTransparent() is 0 for me, for some reason. More testing required.
-    // static_bitmap->SetTransparent(config.popups.opacity ....
 
     static_bitmap->SetBitmap(bitmap);
     sizer->Add(static_bitmap);
     frame->SetSizer(sizer);
     frame->SetSize(width, height);
 
+    auto [min, max] = config.popups.opacity;
+    frame->SetTransparent(rand(min, max) * 2.55);
+
     if (config.popups.closable)
         static_bitmap->Bind(wxEVT_LEFT_DOWN, &Goonto::OnClickClose, this);
 
-    frame->Show(true);
+    // Don't steal focus
+    frame->ShowWithoutActivating();
 }
 
 void OnClickClose(wxMouseEvent &event)
@@ -210,7 +247,7 @@ void OnClickClose(wxMouseEvent &event)
     {
         int total = 1 + rand(config.popups.mitosis.max);
         for (int i = 0; i < total; i++)
-            OpenImage_();
+            OpenImage();
     }
 }
 
@@ -270,6 +307,38 @@ void PlayAudio(wxTimerEvent &WXUNUSED(event))
     libvlc_media_release(m);
 }
 
+void OpenVideo(wxTimerEvent &WXUNUSED(event))
+{
+    if (m_videoPlaying) return;
+    m_videoPlaying = true;
+
+    auto video = pack->RandomVideo();
+    auto [x, y] = reasonablePosition();
+
+    // wxFrame *frame = new wxFrame(NULL, -1, "Goonto", wxPoint(x, y), wxSize(450, 340),
+    //     wxBORDER_NONE | wxFRAME_NO_TASKBAR | wxSTAY_ON_TOP);
+    // wxBoxSizer *sizer = new wxBoxSizer(wxHORIZONTAL);
+    // wxMediaCtrl *mediaCtrl = new wxMediaCtrl(frame, -1);
+
+    // sizer->Add(mediaCtrl);
+    // frame->SetSizer(sizer);
+
+    // bool worked = mediaCtrl->Load(video);
+    // if (!worked) {
+    //     std::cout << "no worked" << std::endl;
+    //     exit(1);
+    // }
+
+    libvlc_media_t *m = libvlc_media_new_location(vid_inst, video.c_str());
+    vid_mp = libvlc_media_player_new_from_media(m);
+    libvlc_media_player_play(vid_mp);
+
+    libvlc_media_release(m);
+    // mediaCtrl->SetVolume(0);
+    // mediaCtrl->Play();
+    // frame->ShowWithoutActivating();
+}
+
 // void ChangeWallpaper(wxTimerEvent& WXUNUSED(event))
 // {
 //     auto path = pack->RandomImage();
@@ -289,6 +358,7 @@ wxDECLARE_EVENT_TABLE();
 wxBEGIN_EVENT_TABLE(Goonto, wxApp)
     EVT_TIMER(OpenImage_Timer, Goonto::OpenImage)
     EVT_TIMER(OpenSite_Timer, Goonto::OpenSite)
+    EVT_TIMER(Video_Timer, Goonto::OpenVideo)
     EVT_TIMER(NewNotif_Timer, Goonto::NewNotif)
     EVT_TIMER(Typing_Timer, Goonto::Type)
     EVT_TIMER(Audio_Timer, Goonto::PlayAudio)
