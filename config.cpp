@@ -12,8 +12,9 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(popup_t, closable, enabled, opacity, censor_c
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(typing_t, enabled, rate)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(notif_t, close_automatically, enabled, rate)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(audio_t, enabled)
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(video_t, enabled, rate, multiple, censor_chance)
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(config_t, notifs, audio, popups, typing, web, videos)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(clipboard_t, enabled, rate)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(video_t, enabled)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(config_t, clipboard, notifs, audio, popups, typing, web, videos)
 
 config_t loadConfig(std::string path)
 {

@@ -1,27 +1,27 @@
 {
     "popups": {
         "enabled": false,
-        "rate": 1000,
-        "opacity": [100, 100],
+        "rate": 2000,
+        "opacity": [30, 100],
         /* Clicking on a popup will close it */
         "closable": true,
         /* Closing a popup has the chance to spawn more */
         "mitosis": {
-            "chance": 0,
-            "max": 5
+            "chance": 10,
+            "max":25
         },
-        "censor_chance": 50,
+        "censor_chance": 20,
         /* Chance of the next popup spawning under the cursor */
-        "follow_cursor_chance": 0
+        "follow_cursor_chance": 30
     },
     "notifs": {
         "enabled": false,
-        "rate": 500,
+        "rate": 1000,
         /* Stay open forever, or close after a timeout */
         "close_automatically": true
     },
     "web": {
-        "enabled": false,
+        "enabled": true,
         "rate": 2000
     },
     "typing": {
@@ -31,10 +31,11 @@
     "audio": {
         "enabled": false
     },
+    "clipboard": {
+        "enabled": false,
+        "rate": 1000
+    },
     "videos": {
-        "enabled": true,
-        "rate": 1000,
-        "multiple": false,
-        "censor_chance": 50
+        "enabled": false
     }
 }

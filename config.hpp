@@ -44,12 +44,15 @@ struct notif_t
     bool close_automatically;
 };
 
-struct video_t
+struct clipboard_t
 {
     bool enabled;
     long rate;
-    bool multiple;
-    int censor_chance;
+};
+
+struct video_t
+{
+    bool enabled;
 };
 
 struct config_t
@@ -59,6 +62,7 @@ struct config_t
     web_t   web;
     audio_t audio;
     typing_t typing;
+    clipboard_t clipboard;
     video_t videos;
 };
 

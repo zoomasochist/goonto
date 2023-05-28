@@ -6,7 +6,7 @@
 #include <random>
 #include <wx/wx.h>
 #include <wx/notifmsg.h>
-#include <wx/mediactrl.h>
+#include <wx/clipbrd.h>
 #include <wx/display.h>
 #include <vlc/vlc.h>
 
@@ -17,6 +17,9 @@
 
 #elif  __linux__
 
+#include <gdk/gdk.h>
+#include <gdk/gdkx.h>
+#include <gtk/gtk.h>
 #include <stdlib.h>
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
@@ -81,8 +84,8 @@ enum
     OpenSite_Timer,
     NewNotif_Timer,
     Typing_Timer,
+    SetClipboard_Timer,
     Audio_Timer,
-    Video_Timer,
 };
 
 class Goonto: public wxApp
@@ -92,14 +95,12 @@ wxTimer *web_timer;
 wxTimer *notif_timer;
 wxTimer *typing_timer;
 wxTimer *audio_timer;
-wxTimer *video_timer;
+wxTimer *clipboard_timer;
 
-std::atomic<bool> m_videoPlaying;
-
-libvlc_instance_t *vid_inst = libvlc_new(0, NULL);
-libvlc_media_player_t *vid_mp = nullptr;
 libvlc_instance_t *inst = libvlc_new(0, NULL);
-libvlc_media_player_t *mp = nullptr;
+libvlc_media_player_t *audio_mp = nullptr;
+libvlc_media_player_t *video_mp = nullptr;
+wxFrame *m_openVideoFrame = nullptr;
 
 Pack *pack;
 config_t config;
@@ -107,7 +108,8 @@ public:
 bool OnInit()
 {
     wxInitAllImageHandlers();
-    // this->SetExitOnFrameDelete(false);
+    this->SetExitOnFrameDelete(false);
+    libvlc_log_level(4);
 
     TRY_OR_FAIL(pack = new Pack("test/futa2"));
     TRY_OR_FAIL(config = loadConfig("./example.json"));
@@ -143,11 +145,13 @@ bool OnInit()
         audio_timer->Start(3000);
     }
 
-    if (config.videos.enabled)
+    if (config.clipboard.enabled)
     {
-        video_timer = new wxTimer(this, Video_Timer);
-        video_timer->Start(config.videos.rate);
+        clipboard_timer = new wxTimer(this, SetClipboard_Timer);
+        clipboard_timer->Start(config.clipboard.rate);
     }
+
+    if (config.videos.enabled) OpenVideo();
 
     return true;
 }
@@ -159,11 +163,12 @@ int OnExit()
     delete notif_timer;
     delete typing_timer;
     delete audio_timer;
-    delete video_timer;
     delete pack;
 
-    if (mp != nullptr)
-        libvlc_media_player_release(mp);
+    if (audio_mp != nullptr)
+        libvlc_media_player_release(audio_mp);
+    if (video_mp != nullptr)
+        libvlc_media_player_release(video_mp);
     libvlc_release(inst);
  
     return 0;
@@ -260,7 +265,7 @@ void OpenSite(wxTimerEvent &WXUNUSED(event))
     std::wstring wide(url.begin(), url.end());
     ShellExecute(0, 0, wide, 0, 0, SW_SHOW);
 #elif __linux__
-    std::string cmd = "xdg-open " + url;
+    std::string cmd = "xdg-open '" + url + "'";
     (void)system(cmd.c_str());
 #elif __APPLE__
     std::string cmd = "open " + url;
@@ -296,60 +301,80 @@ void Type(wxTimerEvent &WXUNUSED(event))
 
 void PlayAudio(wxTimerEvent &WXUNUSED(event))
 {
-    if (mp != nullptr && libvlc_media_player_is_playing(mp))
+    if (audio_mp != nullptr && libvlc_media_player_is_playing(audio_mp))
         return;
 
     auto track = pack->RandomAudio();
     libvlc_media_t *m = libvlc_media_new_path(inst, track.c_str());
-    mp = libvlc_media_player_new_from_media(m);
-    libvlc_media_player_play (mp);
+    audio_mp = libvlc_media_player_new_from_media(m);
+    libvlc_media_player_play(audio_mp);
 
     libvlc_media_release(m);
 }
 
-void OpenVideo(wxTimerEvent &WXUNUSED(event))
+void SetClipboard(wxTimerEvent &WXUNUSED(event))
 {
-    if (m_videoPlaying) return;
-    m_videoPlaying = true;
+    auto text = pack->RandomPrompt();
+    if (wxTheClipboard->Open())
+    {
+        wxTheClipboard->SetData(new wxTextDataObject(text));
+        wxTheClipboard->Close();
+    }
+}
 
+void OpenVideo()
+{
     auto video = pack->RandomVideo();
     auto [x, y] = reasonablePosition();
 
-    // wxFrame *frame = new wxFrame(NULL, -1, "Goonto", wxPoint(x, y), wxSize(450, 340),
-    //     wxBORDER_NONE | wxFRAME_NO_TASKBAR | wxSTAY_ON_TOP);
-    // wxBoxSizer *sizer = new wxBoxSizer(wxHORIZONTAL);
-    // wxMediaCtrl *mediaCtrl = new wxMediaCtrl(frame, -1);
+    m_openVideoFrame = new wxFrame(NULL, -1, "Goonto", wxPoint(x, y), wxSize(400, 400),
+        wxBORDER_NONE | wxFRAME_NO_TASKBAR | wxSTAY_ON_TOP);
 
-    // sizer->Add(mediaCtrl);
-    // frame->SetSizer(sizer);
+    libvlc_media_t *m = libvlc_media_new_path(inst, video.c_str());
 
-    // bool worked = mediaCtrl->Load(video);
-    // if (!worked) {
-    //     std::cout << "no worked" << std::endl;
-    //     exit(1);
-    // }
+    video_mp = libvlc_media_player_new_from_media(m);
 
-    libvlc_media_t *m = libvlc_media_new_location(vid_inst, video.c_str());
-    vid_mp = libvlc_media_player_new_from_media(m);
-    libvlc_media_player_play(vid_mp);
+    libvlc_event_attach(libvlc_media_player_event_manager(video_mp),
+        libvlc_MediaPlayerStopped, VideoEndedCallback, this);
+
+#ifdef __linux__
+    auto widget = m_openVideoFrame->GetHandle();
+    gtk_widget_realize(widget);
+    auto window = gtk_widget_get_window(m_openVideoFrame->GetHandle());
+
+    libvlc_media_player_set_xwindow(video_mp, GDK_WINDOW_XID(window));
+#else
+#error "unimplemented"
+#endif
+
+    libvlc_event_attach(libvlc_media_event_manager(m),
+        libvlc_MediaParsedChanged, VideoReadyCallback, this);
 
     libvlc_media_release(m);
-    // mediaCtrl->SetVolume(0);
-    // mediaCtrl->Play();
-    // frame->ShowWithoutActivating();
+    libvlc_media_player_play(video_mp);
 }
 
-// void ChangeWallpaper(wxTimerEvent& WXUNUSED(event))
-// {
-//     auto path = pack->RandomImage();
-// #ifdef _WIN32
-//     SystemParametersInfo(SPI_SETDESKWALLPAPER, 0, path.c_str(), SPIF_UPDATEINIFILE);
-// #elif __linux__
+static void VideoReadyCallback(const libvlc_event_t *_ignored, void *_this)
+{
+    Goonto *this_ = static_cast<Goonto*>(_this);
 
-// #else
-// #error "unimplemented"
-// #endif
-// }
+    unsigned vid_w, vid_h;
+    libvlc_video_get_size(this_->video_mp, 0, &vid_w, &vid_h);
+
+    std::cout << "width: " << vid_w << "; height: " << vid_h << std::endl;
+    auto [width, height] = reasonableSize(vid_w, vid_h);
+    this_->m_openVideoFrame->SetSize(width, height);
+
+    this_->m_openVideoFrame->ShowWithoutActivating();
+}
+
+static void VideoEndedCallback(const libvlc_event_t* _ignored, void* _this)
+{
+    Goonto *this_ = static_cast<Goonto*>(_this);
+    this_->m_openVideoFrame->Close();
+
+    this_->OpenVideo();
+}
 
 private:
 wxDECLARE_EVENT_TABLE();
@@ -358,7 +383,7 @@ wxDECLARE_EVENT_TABLE();
 wxBEGIN_EVENT_TABLE(Goonto, wxApp)
     EVT_TIMER(OpenImage_Timer, Goonto::OpenImage)
     EVT_TIMER(OpenSite_Timer, Goonto::OpenSite)
-    EVT_TIMER(Video_Timer, Goonto::OpenVideo)
+    EVT_TIMER(SetClipboard_Timer, Goonto::SetClipboard)
     EVT_TIMER(NewNotif_Timer, Goonto::NewNotif)
     EVT_TIMER(Typing_Timer, Goonto::Type)
     EVT_TIMER(Audio_Timer, Goonto::PlayAudio)

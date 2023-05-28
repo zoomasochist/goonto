@@ -11,23 +11,24 @@ Install Goonto.
 | Blazing fast 🚀🚀🚀 |      ❌      |     ✅     |
 | Popups follow cursor|      ❌      |     ✅     |
 | Notification spam   |      ❌      |     ✅     |
+| Clipboard replace   |      ❌      |     ✅     |
 | Auto-type           |      ❌      |     ✅     |
 | Website opener      |      ✅      |     ✅     |
 | Popup opacity       |      ✅      |     ✅     |
 | Popups              |      ✅      |     ✅     |
+| Video popups        |      ✅      |     ✅     |
 | Popup mitosis       |      ✅      |     ✅     |
 | Popup censoring     |      ✅      |     ✅     |
 | Audio               |      ✅      |     ✅     |
-| Wallpaper changer   |      ✅      |     ❌     |
 | Prompts             |      ✅      |     ❌     |
-| Drive filler        |      ✅      |     ❌*    |
 | "Hibernate" mode    |      ✅      |     ❌     |
 | Panic button        |      ✅      |     ❌     |
+| Lowkey mode         |      ✅      |     ❌     |
 | Booru downloader    |      ✅      |     ❌     |
 | GUI configuration   |      ✅      |     ❌     |
 | Discord activity    |      ✅      |     ❌     |
-| Lowkey mode         |      ❌      |     ❌     |
-| Video popups        |      ❌      |     ❌     |
+| Drive filler        |      ✅      |     ❌*    |
+| Wallpaper changer   |      ✅      |     ❌*    |
 | Walltaker support   |      ❌      |     ❌     |
 | Background hypno    |      ❌      |     ❌     |
 | Block opening Task Manager |      ❌      |     ❌     |
@@ -39,7 +40,20 @@ of their windows, so Goonto etc. will never work.
 
 ## Building
 
-- Install wxWidgets and nlohmann_json
+- Install dependencies
 - `make`
 - ???
 - Profit!!!
+
+### Dependencies
+
+- wxWidgets
+- libvlc
+- nlohmann_json
+
+#### Linux
+
+- wxGTK3
+- gtk3
+- xtst
+- libx11
